@@ -9,8 +9,7 @@ The aim of this project is to develop a mobile application which solves the prob
 
 Movie info can be gotten from tmdb and the movie files can be scraped from various sources such as fzmovies, netnaija and so on.
 
-The current problem with this script is the botprotection/ads netnaija has built on their system. It acts as a bot protection since it seems to be tracking the cursor position of the device hence knowing when a real user is interacting with the frontend. Using browsers like tor, you may be able to bypass the ads and probably the bot protection thing. 
-
+This is only the js version/branch.
 # How to contribute
 - Fork this repo !
 - Make your changes to your own fork
