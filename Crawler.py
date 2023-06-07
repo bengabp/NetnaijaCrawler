@@ -84,13 +84,3 @@ class NetnaijaCrawler:
 		response = requests.get(f'https://api.sabishare.com/token/download/{SabiShareMovieId}', headers=headers)
 
 		return response.json()["data"]["url"]
-Crawler = NetnaijaCrawler()
-
-Movies = Crawler.getMoviesList(5)
-
-
-name = Crawler.getFilmName(Movies[0])
-
-link = Crawler.getDownloadLink(name)
-
-print(link)
