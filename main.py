@@ -1,79 +1,96 @@
-from playwright.sync_api import sync_playwright, BrowserContext, TimeoutError
-from pprint import pprint
-import json
-from config import DIR_PATH, logger
+import requests
+from config import logger
+from bs4 import BeautifulSoup
 
+base_movies_url = "https://www.thenetnaija.net/videos/movies"
 
 class NetnaijaCrawler:
 	def __init__(self):
 		self.logger = logger
 		self.base_url = "https://www.thenetnaija.net"
 		self.movies_url = f"{self.base_url}/videos/movies"
-	
-	def run(self):
-		self.logger.info("Starting crawler ...")
-		with sync_playwright() as playwright_sync:
-			browser = playwright_sync.chromium.launch(headless = False)
-			context = browser.new_context()
-			page = context.new_page()
-			
-			page.goto(self.movies_url)
-			movie_elements = page.query_selector_all("div.video-files > article.file-one.shadow")
-			
-			movies = []
-			
-			with open("movies.json") as movies_json:
-				movies = json.load(movies_json)
-			
-			for movie in movies:
-				self.get_movie_details(movie, context)
-			"""
-			for movie_element in movie_elements:
-				image_url = movie_element.query_selector("div.thumbnail img").get_property("src").__str__()
-				title_hyperlink = movie_element.query_selector("div.info h2 > a")
-				title = title_hyperlink.text_content().strip()
-				details_url = title_hyperlink.get_property("href").__str__()
-				upload_time = movie_element.query_selector("div.info .meta .inner span[title]").get_property(
-					"title").__str__()
-				rating_element = movie_element.query_selector(".rating span.rating-stars")
-				positive_stars = rating_element.query_selector_all("i.filled").__len__()
-				total_stars = rating_element.query_selector_all("i").__len__()
-				rating_str = f"{positive_stars}/{total_stars}"
-				
-				movie_details = {
-					"image_url": image_url,
-					"title": title,
-					"details_url": details_url,
-					"upload_time": upload_time,
-					"rating": rating_str
-				}
-				self.logger.info(f"Movie => {title}")
-				movies.append(movie_details)
-				
-			with open("movies.json","w") as movies_json:
-				json.dump(movies,movies_json,indent=4)
-			# Scrape movie description
-		"""
-	
-	def get_movie_details(self, movie, context: BrowserContext):
-		details_url = movie['details_url']
-		
-		details_page = context.new_page()
-		details_page.goto(details_url)
-		print(details_page.title())
-		
-		retry_click = True
-		while retry_click:
-			ads_click_interceptor = details_page.locator("div.lmslmx")
-			details_page.mouse.click(100, 100)
-			try:
-				details_page.get_by_role("link", name = " Download  (Video)").click(timeout = 10, click_count = 1)
-				self.logger.info("Clicked")
-				break
-			except TimeoutError:
-				self.logger.info("Retry click ...")
 
 
-if __name__ == "__main__":
-	crawler = NetnaijaCrawler()
-	crawler.run()
+	def getMoviesList(self, page = 0):
+
+		headers = {
+			'authority': 'www.thenetnaija.net',
+			'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+			'accept-language': 'it,it-IT;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+			'dnt': '1',
+			'prefer': 'safe',
+			'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Microsoft Edge";v="114"',
+			'sec-ch-ua-mobile': '?0',
+			'sec-ch-ua-platform': '"Windows"',
+			'sec-fetch-dest': 'document',
+			'sec-fetch-mode': 'navigate',
+			'sec-fetch-site': 'none',
+			'sec-fetch-user': '?1',
+			'upgrade-insecure-requests': '1',
+			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.37',
+		}
+
+		r = requests.get(f"{base_movies_url}/page/{page}", headers = headers )
+
+		doc = BeautifulSoup(r.text, "html.parser")
+
+		return  doc.find_all("article", {"class": "file-one shadow"})
+
+
+	def getFilmName(self, FilmTag):
+		return  FilmTag.find("a")["href"][42:]
+	def getDownloadLink( self, FilmName):
+		headers = {
+			'authority': 'www.thenetnaija.net',
+			'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+			'accept-language': 'it,it-IT;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+			'dnt': '1',
+			'prefer': 'safe',
+			'referer': 'https://www.thenetnaija.net/videos/movies/18835-mutant-ghost-war-girl-2022-chinese',
+			'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Microsoft Edge";v="114"',
+			'sec-ch-ua-mobile': '?0',
+			'sec-ch-ua-platform': '"Windows"',
+			'sec-fetch-dest': 'document',
+			'sec-fetch-mode': 'navigate',
+			'sec-fetch-site': 'same-origin',
+			'sec-fetch-user': '?1',
+			'upgrade-insecure-requests': '1',
+			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.37',
+		}
+
+		response = requests.get(
+			f'https://www.thenetnaija.net/videos/movies/{FilmName}/download',
+			headers=headers
+		)
+
+		SabiShareMovieId = response.url[31: 42]
+
+		headers = {
+			'authority': 'api.sabishare.com',
+			'accept': 'application/json, text/plain, */*',
+			'accept-language': 'it-IT,it;q=0.9',
+			'origin': 'https://www.sabishare.com',
+			'referer': 'https://www.sabishare.com/',
+			'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Brave";v="114"',
+			'sec-ch-ua-mobile': '?0',
+			'sec-ch-ua-platform': '"Windows"',
+			'sec-fetch-dest': 'empty',
+			'sec-fetch-mode': 'cors',
+			'sec-fetch-site': 'same-site',
+			'sec-gpc': '1',
+			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+		}
+
+		response = requests.get(f'https://api.sabishare.com/token/download/{SabiShareMovieId}', headers=headers)
+
+		return response.json()["data"]["url"]
+Crawler = NetnaijaCrawler()
+
+Movies = Crawler.getMoviesList(5)
+
+
+name = Crawler.getFilmName(Movies[0])
+
+link = Crawler.getDownloadLink(name)
+
+print(link)

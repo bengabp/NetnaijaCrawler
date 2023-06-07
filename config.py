@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 import logging
 import sys
 from colorlog import ColoredFormatter
